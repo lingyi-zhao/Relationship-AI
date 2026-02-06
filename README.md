@@ -1,10 +1,36 @@
-# ❤️ RelationshipAI
+# ❤️ RelationshipAI v2.0
 
 **Your Personal AI Companion for Every Stage of Love.**
 
 RelationshipAI is an intelligent relationship coaching app built with **React Native (Expo)** and powered by **Google Gemini AI**. It dynamically adapts its interface, features, and AI advice based on the user's current relationship status (Healing, Dating, or In a Relationship) to provide the most relevant companionship.
 
-![Project Status](https://img.shields.io/badge/Status-Development-blue) ![Expo](https://img.shields.io/badge/Expo-Go-black) ![AI](https://img.shields.io/badge/Powered%20by-Gemini-orange)
+![Project Status](https://img.shields.io/badge/Status-Demo_Ready-green) ![Expo](https://img.shields.io/badge/Expo-Go-black) ![AI](https://img.shields.io/badge/Powered%20by-Gemini-orange)
+
+---
+
+## 🆕 What's New in v2.0
+
+### 🔐 Phase-Based Feature Unlock System
+Users progress through relationship phases, unlocking features as they grow:
+- **Healing Phase** → Always accessible (starting point)
+- **Dating Phase** → Unlocks after completing healing journey
+- **Coaching Phase** → Unlocks after making matches
+
+### 🧪 Demo Mode Controls
+For testers and demos:
+- **Demo Mode Toggle** → Instantly unlock ALL features
+- **Quick Unlock Buttons** → Skip phases for testing
+- **Reset Progress** → Start fresh for demos
+
+### 📍 Location-Based Features
+- **Nearby Places** → Date spots, cafes, parks with real images
+- **People Nearby** → See matches near your location with distance
+- **Google Maps Integration** → Get directions to recommended spots
+
+### 🖼️ Premium UI
+- **Profile Images** → High-quality photos for all profiles
+- **Place Images** → Beautiful venue photography
+- **Locked State UI** → Clear visual feedback for locked features
 
 ---
 
@@ -23,15 +49,32 @@ RelationshipAI is an intelligent relationship coaching app built with **React Na
 * **Interest Tags**: Multi-select chips to optimize the AI recommendation algorithm.
 
 ### 3. 🔄 Dynamic Navigation & State
-* **Auto-Routing**: Automatically navigates users to the most relevant home tab (Healing vs. Dating) upon completing onboarding based on their status.
-* **Theme Adaptation**: The UI color scheme changes dynamically (Pink/Coral/Purple) to match the current mode.
+* **Auto-Routing**: Automatically navigates users to the most relevant home tab based on their status.
+* **Theme Adaptation**: The UI color scheme changes dynamically to match the current mode.
+* **Feature Locking**: Tabs show lock icons when features aren't yet unlocked.
 
-### 4. ⚙️ Profile & Settings
-* **Status Switcher**: Easily switch between relationship modes via a modal without resetting your account.
-* **Location Editor**: Update your "Current City" anytime to get local date spots and activity recommendations.
-* **Data Reset**: Includes a "Danger Zone" to fully wipe app data and restart the onboarding process.
+### 4. 💕 Dating Features
+* **Swipe Interface**: Tinder-style card swiping for matches
+* **People Nearby**: See who's close to you with distance indicators
+* **Compatibility Scores**: AI-calculated match percentages
+* **Chat**: Message your matches
 
-## Setup
+### 5. 🧘 Healing Features
+* **Progress Dashboard**: Track your healing journey
+* **Breathing Exercises**: Guided relaxation
+* **Journal**: AI-analyzed mood tracking
+* **Memory Reframing**: Process past photos with AI guidance
+* **Healing Chat**: Compassionate AI conversation partner
+
+### 6. ⚙️ Profile & Settings
+* **Status Switcher**: Easily switch between relationship modes.
+* **Location Editor**: Update your city for local recommendations.
+* **Demo Controls**: Quick unlock buttons for testing.
+* **Data Reset**: Wipe app data and restart.
+
+---
+
+## 🚀 Setup
 
 ### 1. Install Dependencies
 
@@ -42,94 +85,114 @@ npm install
 ### 2. Configure Gemini API Key
 
 1. Get your API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
-2. Create a `.env` file in the root directory:
+2. Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+3. Edit `.env` and add your key:
    ```
    EXPO_PUBLIC_GEMINI_API_KEY=your_actual_api_key_here
    ```
-3. Make sure `.env` is in your `.gitignore` (it already is)
 
 ### 3. Run the App
 
 ```bash
 # Start Expo
-npm start
+npx expo start
 
 # Run on iOS
-npm run ios
+npx expo start --ios
 
 # Run on Android
-npm run android
+npx expo start --android
 
 # Run on Web
-npm run web
+npx expo start --web
 ```
 
-## Tech Stack
+---
 
-- **Framework**: Expo (React Native)
-- **Language**: TypeScript
-- **State Management**: Zustand
-- **Navigation**: React Navigation
-- **AI**: Google Gemini API
-- **Maps**: react-native-maps
-- **Theme**: Custom "Soft Coral & Teal" design system
+## 🧪 Demo Mode
 
-## Project Structure
+For testing all features without going through the unlock progression:
+
+1. Open the app
+2. Go to **Profile** tab
+3. Scroll to **🧪 Demo Controls**
+4. Toggle **Demo Mode** ON
+
+This instantly unlocks:
+- ✅ Dating features
+- ✅ Coaching/Instructor features
+- ✅ All nearby recommendations
+
+---
+
+## 🛠️ Tech Stack
+
+| Technology | Purpose |
+|------------|---------|
+| **Expo** | React Native framework |
+| **TypeScript** | Type-safe development |
+| **Zustand** | State management |
+| **React Navigation** | Tab & stack navigation |
+| **Google Gemini** | AI-powered recommendations |
+| **Expo Location** | GPS for nearby features |
+| **react-native-maps** | Map integration |
+
+---
+
+## 📁 Project Structure
 
 ```
 src/
-├── components/         # Shared components
-│   ├── CarouselWidget.tsx    # [NEW] Horizontal scroll list for "Top 5" recommendations
-│   ├── InteractiveWidget.tsx # [NEW] Wrapper for swipeable cards with overlay actions
-│   ├── WidgetRenderer.tsx    # [UPDATED] Factory logic: decides between Carousel vs Standard Card
-│   ├── MyCard.tsx            # Base visual component for cards
-│   └── ScreenWrapper.tsx     # Standard screen layout wrapper
-├── navigation/         # Navigation setup (TabNavigator, RootStack)
+├── components/
+│   ├── NearbyPlaces.tsx      # 📍 Location-based place cards
+│   ├── NearbyPeople.tsx      # 👥 People nearby carousel
+│   ├── ProgressDashboard.tsx # 📊 Healing progress tracker
+│   ├── BreathingExercise.tsx # 🧘 Guided breathing
+│   ├── CarouselWidget.tsx    # 🎠 Horizontal scroll widgets
+│   └── ...
 ├── screens/
-│   ├── onboarding/     # Registration flow (Wizard Form)
-│   ├── dating/         # Dating features (Swipe & Match)
-│   ├── healing/        # Healing features (Journal & Meditation)
-│   ├── instructor/     # AI Coach (Dynamic Feed)
-│   │   └── InstructorScreen.tsx  # [UPDATED] Implements "7-fetch, 5-show" & auto-refill logic
-│   └── settings/       # User Profile (Location Edit, Status Switch)
+│   ├── healing/              # 💚 Healing features
+│   ├── dating/               # ❤️ Dating features (with unlock gate)
+│   ├── instructor/           # 🎯 AI Coach (with unlock gate)
+│   └── settings/             # ⚙️ Profile & Demo Controls
+├── state/
+│   └── store.ts              # 🗃️ Zustand store with unlock logic
 ├── services/
-│   └── gemini/
-│       └── client.ts   # [UPDATED] Magazine Editor Persona, JSON sanitizer, & Visual Prompts
-├── state/              # Zustand Store (store.ts)
-├── theme/              # Global theme variables (Colors, Spacing)
-└── types/              # TypeScript type definitions
-    └── index.ts        # [UPDATED] Added InstructorItem & expanded Widget types
+│   └── gemini/client.ts      # 🤖 Gemini API integration
+└── types/index.ts            # 📝 TypeScript definitions
 ```
 
-## Environment Variables
+---
 
-The app uses Expo's environment variable system. Variables prefixed with `EXPO_PUBLIC_` are available in the app.
+## 🔐 Security
 
-**Required:**
-- `EXPO_PUBLIC_GEMINI_API_KEY`: Your Google Gemini API key
+| Item | Protection |
+|------|------------|
+| API Keys | Stored in `.env` (gitignored) |
+| `.env.example` | Contains only placeholder values |
+| Source code | No hardcoded secrets |
 
-## Security Notes
+**Never commit your `.env` file!**
 
-- Never commit your `.env` file to version control
-- The `.env` file is already in `.gitignore`
-- API keys are only used client-side (Expo public variables)
-- For production, consider using environment-specific configurations
+---
 
-## Troubleshooting
+## 📱 Screenshots
 
-### API Key Issues
+*Coming soon*
 
-If you see warnings about missing API keys:
-1. Ensure `.env` file exists in the root directory
-2. Check that the variable name is exactly `EXPO_PUBLIC_GEMINI_API_KEY`
-3. Restart Expo after creating/modifying `.env`
-4. Verify your API key is valid at [Google AI Studio](https://aistudio.google.com/app/apikey)
+---
 
-### Location Permissions
+## 👥 Team
 
-The app requires location permissions for the "Date Spots" feature. Make sure to grant permissions when prompted.
+- **Healing Dashboard** - Mason
+- **Dating Features** - Ao Chen
+- **AI Instructor** - Roger
 
-## License
+---
 
-Private project
+## 📄 License
 
+Private Project - All Rights Reserved
