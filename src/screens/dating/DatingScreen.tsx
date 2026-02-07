@@ -10,6 +10,7 @@ import {
     FlatList,
     Animated,
     ScrollView,
+    ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
@@ -18,12 +19,18 @@ import MyCard from '../../components/MyCard';
 import { NearbyPeople } from '../../components/NearbyPeople';
 import { MOCK_MATCHES, calculateCompatibility } from '../../utils/mockData';
 import { useAppStore } from '../../state/store';
+import { GeminiService } from '../../services/gemini/client';
 import { theme } from '../../theme';
 
 import { RootStackParamList, MatchProfile } from '../../types';
 
 const { width } = Dimensions.get('window');
 const REQUIRED_DAYS = 30;
+
+// 🔧 FEATURE FLAG: Set to true when you have a real user database
+// When true: Uses Gemini AI to generate personalized profiles and calculate compatibility
+// When false: Uses mock data with images (current state for demo)
+const USE_AI_MATCHING = false;
 
 type DatingTab = 'discover' | 'matches';
 
@@ -51,6 +58,11 @@ export default function DatingScreen() {
     const [checkedInToday, setCheckedInToday] = useState(false);
     const [checkInCount, setCheckInCount] = useState(0);
     const [isUnlocked, setIsUnlocked] = useState(false);
+    
+    // AI-Generated Profiles State (for future use)
+    const [aiProfiles, setAiProfiles] = useState<MatchProfile[]>([]);
+    const [loadingProfiles, setLoadingProfiles] = useState(false);
+    const [profilesError, setProfilesError] = useState<string | null>(null);
 
     // Animation for progress
     const progressAnim = useState(new Animated.Value(0))[0];
@@ -66,6 +78,117 @@ export default function DatingScreen() {
         refreshState();
     }, []);
 
+    // 🚀 FUTURE: Generate AI profiles when USE_AI_MATCHING is enabled
+    useEffect(() => {
+        if (USE_AI_MATCHING && isUnlocked && user) {
+            generateAIProfiles();
+        }
+    }, [isUnlocked, user]);
+
+    // 🚀 FUTURE: AI Profile Generation (ready for when you have a database)
+    const generateAIProfiles = async () => {
+        if (!GeminiService.isConfigured()) {
+            Alert.alert('API Key Required', 'Please add your Gemini API key to generate profiles.');
+            setLoadingProfiles(false);
+            return;
+        }
+
+        setLoadingProfiles(true);
+        setProfilesError(null);
+
+        try {
+            const location = (user?.extendedProfile as any)?.location || user?.location || 'San Francisco, CA';
+            
+            const response = await GeminiService.generateDatingProfiles({
+                age: user?.age || 25,
+                gender: (user?.extendedProfile as any)?.gender,
+                interests: user?.interests || [],
+                location: location,
+                datingGoal: (user?.extendedProfile as any)?.datingGoal
+            }, 10);
+
+            const parsed = JSON.parse(response);
+            const profiles: MatchProfile[] = await Promise.all(
+                parsed.profiles.map(async (p: any) => {
+                    const profile: MatchProfile = {
+                        id: p.id,
+                        name: p.name,
+                        age: p.age,
+                        bio: p.bio,
+                        interests: p.interests,
+                        compatibilityScore: 85,
+                        gender: p.gender,
+                        location: p.location,
+                        datingGoal: p.datingGoal,
+                        imageUrl: getProfileImageUrl(p.gender),
+                    };
+
+                    // Calculate AI compatibility (with timeout protection)
+                    try {
+                        const score = await Promise.race([
+                            GeminiService.calculateCompatibility(
+                                {
+                                    interests: user?.interests || [],
+                                    age: user?.age || 25,
+                                    datingGoal: (user?.extendedProfile as any)?.datingGoal
+                                },
+                                profile
+                            ),
+                            new Promise<number>((_, reject) => 
+                                setTimeout(() => reject(new Error('Timeout')), 5000)
+                            )
+                        ]);
+                        profile.compatibilityScore = score;
+                    } catch (err) {
+                        // Fallback to simple calculation
+                        profile.compatibilityScore = calculateCompatibility(
+                            user?.interests || [],
+                            profile.interests
+                        );
+                    }
+
+                    return profile;
+                })
+            );
+
+            profiles.sort((a, b) => b.compatibilityScore - a.compatibilityScore);
+            setAiProfiles(profiles);
+        } catch (error: any) {
+            console.error('Profile generation error:', error);
+            setProfilesError('Failed to generate profiles. Using mock data.');
+        } finally {
+            setLoadingProfiles(false);
+        }
+    };
+
+    // Helper to get profile image based on gender
+    const getProfileImageUrl = (gender?: string): string => {
+        const maleImages = [
+            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face',
+            'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop&crop=face',
+            'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face',
+            'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop&crop=face',
+            'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=400&h=400&fit=crop&crop=face',
+        ];
+        const femaleImages = [
+            'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop&crop=face',
+            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop&crop=face',
+            'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&h=400&fit=crop&crop=face',
+            'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=400&fit=crop&crop=face',
+            'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=400&h=400&fit=crop&crop=face',
+        ];
+        const nonbinaryImages = [
+            'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=400&fit=crop&crop=face',
+            'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=400&h=400&fit=crop&crop=face',
+        ];
+
+        let images = maleImages;
+        if (gender?.toLowerCase().includes('female')) images = femaleImages;
+        else if (gender?.toLowerCase().includes('non')) images = nonbinaryImages;
+
+        return images[Math.floor(Math.random() * images.length)];
+    };
+
     // Animate progress bar
     useEffect(() => {
         const progress = checkInCount / REQUIRED_DAYS;
@@ -75,16 +198,8 @@ export default function DatingScreen() {
         }).start();
     }, [checkInCount]);
 
-    // Filter profiles based on user interests
-    const getFilteredProfiles = (): MatchProfile[] => {
-        const userInterests = user?.interests || [];
-        return MOCK_MATCHES.map(profile => ({
-            ...profile,
-            compatibilityScore: calculateCompatibility(userInterests, profile.interests),
-        })).sort((a, b) => b.compatibilityScore - a.compatibilityScore);
-    };
-
-    const filteredProfiles = getFilteredProfiles();
+    // 🚀 FUTURE: Use AI profiles when enabled, fallback to mock data
+    const filteredProfiles = USE_AI_MATCHING ? aiProfiles : MOCK_MATCHES;
     const currentProfile = filteredProfiles[currentIndex];
 
     // --- CHECK-IN LOGIC ---
@@ -266,14 +381,40 @@ export default function DatingScreen() {
 
     // --- RENDER: Discover (Swipe Deck) ---
     const renderDiscover = () => {
+        // 🚀 Show loading only when AI matching is enabled
+        if (USE_AI_MATCHING && loadingProfiles) {
+            return (
+                <View style={styles.centerContent}>
+                    <ActivityIndicator size="large" color={theme.colors.primary} />
+                    <Text style={styles.loadingText}>Finding compatible matches...</Text>
+                    <Text style={styles.loadingSubtext}>AI is analyzing profiles near you</Text>
+                </View>
+            );
+        }
+
+        // 🚀 Show error only when AI matching is enabled
+        if (USE_AI_MATCHING && profilesError) {
+            return (
+                <View style={styles.centerContent}>
+                    <Ionicons name="alert-circle" size={64} color={theme.colors.error} />
+                    <Text style={styles.errorText}>{profilesError}</Text>
+                    <TouchableOpacity onPress={generateAIProfiles} style={styles.retryBtn}>
+                        <Text style={styles.retryText}>Retry</Text>
+                    </TouchableOpacity>
+                </View>
+            );
+        }
+
         if (!currentProfile) {
             return (
                 <View style={styles.centerContent}>
                     <Ionicons name="search" size={64} color={theme.colors.textLight} />
                     <Text style={styles.emptyText}>No more profiles nearby.</Text>
-                    <TouchableOpacity onPress={() => setCurrentIndex(0)} style={styles.resetBtn}>
-                        <Text style={styles.resetText}>Refresh List</Text>
-                    </TouchableOpacity>
+                    {USE_AI_MATCHING && (
+                        <TouchableOpacity onPress={generateAIProfiles} style={styles.resetBtn}>
+                            <Text style={styles.resetText}>Generate New Profiles</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
             );
         }
@@ -914,5 +1055,35 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: theme.colors.textLighter,
         textDecorationLine: 'underline',
+    },
+    
+    // Loading & Error States
+    loadingText: {
+        marginTop: 16,
+        fontSize: 18,
+        fontWeight: '600',
+        color: theme.colors.text,
+    },
+    loadingSubtext: {
+        marginTop: 8,
+        fontSize: 14,
+        color: theme.colors.textLight,
+    },
+    errorText: {
+        marginTop: 20,
+        fontSize: 16,
+        color: theme.colors.error,
+        textAlign: 'center',
+        paddingHorizontal: 40,
+    },
+    retryBtn: {
+        marginTop: 20,
+        padding: 12,
+        backgroundColor: theme.colors.primary,
+        borderRadius: 8,
+    },
+    retryText: {
+        color: '#FFF',
+        fontWeight: 'bold',
     },
 });

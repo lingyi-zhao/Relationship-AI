@@ -320,5 +320,167 @@ export const GeminiService = {
         const prompt = 'Analyze these mood logs: ' + JSON.stringify(moodLogs) + '. Return JSON in English: { "overallTrend": "improving/declining/stable", "averageMood": number, "patterns": ["pattern1"], "triggers": ["trigger1"], "encouragement": "positive observation", "suggestions": ["suggestion1"] }';
         const result = await withTimeout(getModel().generateContent(prompt));
         return result.response.text();
+    },
+
+    // ============================================================
+    //  👇 SECTION 3: AI-POWERED DATING FEATURES 👇
+    // ============================================================
+
+    /**
+     * Generate dating profiles based on user preferences and location
+     */
+    generateDatingProfiles: async (userProfile: {
+        age: number;
+        gender?: string;
+        interests: string[];
+        location: string;
+        datingGoal?: string;
+    }, count: number = 10): Promise<string> => {
+        if (!isApiAvailable()) throw new Error('Gemini API key not configured.');
+        
+        const prompt = `Generate ${count} realistic dating profiles for people near ${userProfile.location}.
+
+User looking for matches is:
+- Age: ${userProfile.age}
+- Gender: ${userProfile.gender || 'Not specified'}
+- Interests: ${userProfile.interests.join(', ')}
+- Dating goal: ${userProfile.datingGoal || 'Connection'}
+
+Generate diverse, realistic profiles. Return JSON:
+{
+  "profiles": [
+    {
+      "id": "unique_id",
+      "name": "First name only",
+      "age": number (18-65),
+      "gender": "Male/Female/Non-binary",
+      "bio": "Engaging 2-3 sentence bio with personality and emojis",
+      "interests": ["interest1", "interest2", "interest3", "interest4"],
+      "location": "City within 50 miles of ${userProfile.location}",
+      "datingGoal": "Long-term relationship/Casual dating/Serious relationship/etc",
+      "distance": "X.X mi",
+      "isOnline": boolean
+    }
+  ]
+}
+
+Make profiles feel authentic - include specific hobbies, professions, and personality traits. Vary ages, backgrounds, and interests to show diversity.`;
+
+        const result = await withTimeout(getJsonModel().generateContent(prompt));
+        return result.response.text();
+    },
+
+    /**
+     * Calculate AI-powered compatibility score between two profiles
+     */
+    calculateCompatibility: async (
+        userProfile: { interests: string[]; age: number; datingGoal?: string },
+        matchProfile: { interests: string[]; age: number; datingGoal?: string; bio: string }
+    ): Promise<number> => {
+        if (!isApiAvailable()) return Math.floor(Math.random() * 30) + 60;
+        
+        try {
+            const prompt = `Analyze compatibility between two people:
+
+Person A: ${JSON.stringify(userProfile)}
+Person B: ${JSON.stringify(matchProfile)}
+
+Consider:
+- Shared interests (weight: 40%)
+- Age compatibility (weight: 20%)
+- Dating goals alignment (weight: 25%)
+- Bio personality match (weight: 15%)
+
+Return JSON: { "score": number (0-100), "reason": "brief explanation" }`;
+
+            const result = await withTimeout(getJsonModel().generateContent(prompt), 10000);
+            const response = JSON.parse(cleanJsonString(result.response.text()));
+            return response.score || 75;
+        } catch (error) {
+            console.error('Compatibility calculation error:', error);
+            return Math.floor(Math.random() * 30) + 60;
+        }
+    },
+
+    /**
+     * Generate nearby places recommendations based on context
+     */
+    generateNearbyPlaces: async (
+        location: string,
+        context: 'healing' | 'dating' | 'relationship',
+        userPreferences?: string[]
+    ): Promise<string> => {
+        if (!isApiAvailable()) throw new Error('Gemini API key not configured.');
+
+        const contextDescriptions = {
+            healing: 'peaceful, quiet spots for reflection like cafes, parks, bookstores, meditation centers',
+            dating: 'trendy date spots like rooftop bars, restaurants, museums, parks with good ambiance',
+            relationship: 'romantic places for couples like wine bars, spas, cooking classes, scenic spots'
+        };
+
+        const prompt = `Generate 4-6 real place recommendations near ${location} for someone in ${context} mode.
+
+Focus on: ${contextDescriptions[context]}
+${userPreferences ? 'User interests: ' + userPreferences.join(', ') : ''}
+
+Return JSON:
+{
+  "places": [
+    {
+      "id": "unique_id",
+      "name": "Real venue name",
+      "type": "restaurant/cafe/park/bar/museum/default",
+      "rating": number (4.0-5.0),
+      "distance": "X.X mi",
+      "priceLevel": "Free/$/$$/$$$/$$$$",
+      "address": "Street address",
+      "reason": "Why this place fits ${context} context (1 sentence)",
+      "imageQuery": "Specific search term for finding venue photo (e.g., 'Central Park New York photography')"
+    }
+  ]
+}
+
+Use actual well-known venues in ${location} when possible. Make recommendations feel personalized and thoughtful.`;
+
+        const result = await withTimeout(getJsonModel().generateContent(prompt));
+        return result.response.text();
+    },
+
+    /**
+     * Generate conversation starters for dating matches
+     */
+    generateIcebreakers: async (matchProfile: {
+        name: string;
+        interests: string[];
+        bio: string;
+    }): Promise<string[]> => {
+        if (!isApiAvailable()) return [
+            "Hey! How's your day going?",
+            "I noticed we both like [interest]!",
+            "Your profile caught my eye 😊"
+        ];
+
+        try {
+            const prompt = `Generate 3 personalized conversation starters for someone named ${matchProfile.name}.
+
+Their profile:
+- Interests: ${matchProfile.interests.join(', ')}
+- Bio: ${matchProfile.bio}
+
+Return JSON: { "icebreakers": ["starter1", "starter2", "starter3"] }
+
+Make them:
+- Specific to their interests/bio
+- Friendly and engaging
+- Not generic or cheesy
+- 1-2 sentences each`;
+
+            const result = await withTimeout(getJsonModel().generateContent(prompt), 10000);
+            const response = JSON.parse(cleanJsonString(result.response.text()));
+            return response.icebreakers || [];
+        } catch (error) {
+            console.error('Icebreaker generation error:', error);
+            return ["Hey! Your profile caught my attention 😊", "I see you're into [interest]!", "How's your day going?"];
+        }
     }
 };

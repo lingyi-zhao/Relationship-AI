@@ -7,6 +7,7 @@ import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { useAppStore } from '../state/store';
+import { GeminiService } from '../services/gemini/client';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.7;
@@ -58,7 +59,7 @@ interface NearbyPlace {
 }
 
 // Mock nearby places based on user location context
-const generateNearbyPlaces = (context: 'healing' | 'dating' | 'relationship'): NearbyPlace[] => {
+const generateFallbackPlaces = (context: 'healing' | 'dating' | 'relationship'): NearbyPlace[] => {
     const healingPlaces: NearbyPlace[] = [
         {
             id: 'p1',
@@ -83,19 +84,6 @@ const generateNearbyPlaces = (context: 'healing' | 'dating' | 'relationship'): N
             imageUrl: PLACE_IMAGES.park[0],
             address: '456 Nature Way',
             reason: 'Peaceful walks to clear your mind',
-            latitude: 37.7749,
-            longitude: -122.4194,
-        },
-        {
-            id: 'p3',
-            name: 'Mindful Cafe',
-            type: 'cafe',
-            rating: 4.6,
-            distance: '0.5 mi',
-            priceLevel: '$',
-            imageUrl: PLACE_IMAGES.cafe[1],
-            address: '789 Calm Street',
-            reason: 'Great for journaling sessions',
             latitude: 37.7749,
             longitude: -122.4194,
         },
@@ -128,32 +116,6 @@ const generateNearbyPlaces = (context: 'healing' | 'dating' | 'relationship'): N
             latitude: 37.7749,
             longitude: -122.4194,
         },
-        {
-            id: 'd3',
-            name: 'Modern Art Museum',
-            type: 'museum',
-            rating: 4.5,
-            distance: '1.2 mi',
-            priceLevel: '$$',
-            imageUrl: PLACE_IMAGES.museum[0],
-            address: '300 Culture Way',
-            reason: 'Great conversation starter',
-            latitude: 37.7749,
-            longitude: -122.4194,
-        },
-        {
-            id: 'd4',
-            name: 'Sunset Park',
-            type: 'park',
-            rating: 4.9,
-            distance: '0.7 mi',
-            priceLevel: 'Free',
-            imageUrl: PLACE_IMAGES.park[1],
-            address: '400 Vista Dr',
-            reason: 'Stunning views for a romantic walk',
-            latitude: 37.7749,
-            longitude: -122.4194,
-        },
     ];
 
     const relationshipPlaces: NearbyPlace[] = [
@@ -183,19 +145,6 @@ const generateNearbyPlaces = (context: 'healing' | 'dating' | 'relationship'): N
             latitude: 37.7749,
             longitude: -122.4194,
         },
-        {
-            id: 'r3',
-            name: 'Wine & Paint Studio',
-            type: 'default',
-            rating: 4.6,
-            distance: '0.5 mi',
-            priceLevel: '$$',
-            imageUrl: 'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=400',
-            address: '700 Creative Ave',
-            reason: 'Fun date night activity',
-            latitude: 37.7749,
-            longitude: -122.4194,
-        },
     ];
 
     switch (context) {
@@ -222,16 +171,14 @@ export const NearbyPlaces: React.FC<NearbyPlacesProps> = ({
 
     useEffect(() => {
         requestLocation();
-    }, []);
+    }, [context]);
 
     const requestLocation = async () => {
         try {
             const { status } = await Location.requestForegroundPermissionsAsync();
             if (status !== 'granted') {
-                // Use mock location for demo
-                setLocationName('San Francisco, CA');
-                setPlaces(generateNearbyPlaces(context));
-                setLoading(false);
+                // Use fallback
+                await generateAIPlaces('San Francisco, CA');
                 return;
             }
 
@@ -247,19 +194,60 @@ export const NearbyPlaces: React.FC<NearbyPlacesProps> = ({
                 longitude: location.coords.longitude,
             });
             
-            if (address) {
-                setLocationName(`${address.city || address.district}, ${address.region}`);
-            }
-
-            // Generate context-appropriate places
-            setPlaces(generateNearbyPlaces(context));
+            const cityName = address ? `${address.city || address.district}, ${address.region}` : 'Your Area';
+            setLocationName(cityName);
+            
+            // Generate AI places
+            await generateAIPlaces(cityName);
         } catch (error) {
             console.log('Location error:', error);
-            setLocationName('Your Area');
-            setPlaces(generateNearbyPlaces(context));
+            await generateAIPlaces('Your Area');
+        }
+    };
+
+    const generateAIPlaces = async (locationName: string) => {
+        if (!GeminiService.isConfigured()) {
+            // Use fallback
+            setLocationName(locationName);
+            setPlaces(generateFallbackPlaces(context));
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const response = await GeminiService.generateNearbyPlaces(
+                locationName,
+                context
+            );
+
+            const parsed = JSON.parse(response);
+            const aiPlaces: NearbyPlace[] = parsed.places.map((p: any) => ({
+                id: p.id,
+                name: p.name,
+                type: p.type,
+                rating: p.rating,
+                distance: p.distance,
+                priceLevel: p.priceLevel,
+                address: p.address,
+                reason: p.reason,
+                imageUrl: getImageForPlace(p.type),
+                latitude: 37.7749, // Would use real geocoding in production
+                longitude: -122.4194,
+            }));
+
+            setPlaces(aiPlaces);
+        } catch (error) {
+            console.error('AI places error:', error);
+            // Fallback to mock data
+            setPlaces(generateFallbackPlaces(context));
         } finally {
             setLoading(false);
         }
+    };
+
+    const getImageForPlace = (type: string): string => {
+        const images = PLACE_IMAGES[type as keyof typeof PLACE_IMAGES] || PLACE_IMAGES.default;
+        return images[Math.floor(Math.random() * images.length)];
     };
 
     const openInMaps = (place: NearbyPlace) => {
@@ -476,4 +464,5 @@ const styles = StyleSheet.create({
 });
 
 export default NearbyPlaces;
+
 

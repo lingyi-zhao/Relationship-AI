@@ -187,10 +187,9 @@ src/
 
 ## 👥 Team
 
-- **Healing Dashboard** - Lingyi Zhao
+- **Healing Dashboard** - Mason
 - **Dating Features** - Ao Chen
-- **AI Instructor** - Roger Chen
-- **Project synthesis** - Yifan Guo
+- **AI Instructor** - Roger
 
 ---
 
